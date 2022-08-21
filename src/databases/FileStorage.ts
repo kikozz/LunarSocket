@@ -35,7 +35,14 @@ export default class FileStorage extends Database {
   }
 
   public async setPlayer(player: Player): Promise<void> {
-    this.file[player.uuid] = player.getDatabasePlayer();
+    this.setPlayerRaw(player.uuid, player.getDatabasePlayer());
+  }
+
+  public async setPlayerRaw(
+    uuid: string,
+    player: DatabasePlayer
+  ): Promise<void> {
+    this.file[uuid] = player;
     await this.writeFile();
   }
 

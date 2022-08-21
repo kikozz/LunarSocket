@@ -10,7 +10,14 @@ export default class InstanceStorage extends Database {
   }
 
   public async setPlayer(player: Player): Promise<void> {
-    this.database.set(player.uuid, player.getDatabasePlayer());
+    this.setPlayerRaw(player.uuid, player.getDatabasePlayer());
+  }
+
+  public async setPlayerRaw(
+    uuid: string,
+    player: DatabasePlayer
+  ): Promise<void> {
+    this.database.set(uuid, player);
   }
 
   public async getPlayer(uuid: string): Promise<DatabasePlayer> {

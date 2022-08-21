@@ -9,13 +9,16 @@ export default class Mongo extends Database {
   private isConnected: boolean;
   private client: MongoClient;
   private collection: Collection;
-  private queue: CallQueue<Player, (player: Player) => Promise<void>>;
+  private queue: CallQueue<
+    { uuid: string; player: DatabasePlayer },
+    (player: { uuid: string; player: DatabasePlayer }) => Promise<void>
+  >;
 
   public constructor() {
     super();
 
     this.isConnected = false;
-    this.queue = new CallQueue(this.setPlayer);
+    this.queue = new CallQueue(this.emptyQueue);
     this.init().catch((reason) => {
       logger.error('An error occured while initializing Mongo\n', reason);
       logger.error("Can't proceed without a working database, exiting...");
@@ -37,19 +40,36 @@ export default class Mongo extends Database {
     this.queue.emptyQueue();
   }
 
+  private async emptyQueue({
+    uuid,
+    player,
+  }: {
+    uuid: string;
+    player: DatabasePlayer;
+  }): Promise<void> {
+    await this.setPlayerRaw(uuid, player);
+  }
+
   public async setPlayer(player: Player): Promise<void> {
+    this.setPlayerRaw(player.uuid, player.getDatabasePlayer());
+  }
+
+  public async setPlayerRaw(
+    uuid: string,
+    player: DatabasePlayer
+  ): Promise<void> {
     // If not connected, push the player instance into the queue
     // Once the connection will be established, the setPlayer
     // method will be called again with the player instance
-    if (!this.isConnected) return void this.queue.push([player]);
+    if (!this.isConnected) return void this.queue.push([{ uuid, player }]);
 
-    const existingPlayer = await this.getPlayer(player.uuid);
+    const existingPlayer = await this.getPlayer(uuid);
 
     if (existingPlayer)
       this.collection.updateOne(
-        { uuid: player.uuid },
+        { uuid: uuid },
         {
-          $set: player.getDatabasePlayer(),
+          $set: player,
           // Removing all fields
           $unset: { color: null, plusColor: null, premium: null },
         }
@@ -57,8 +77,8 @@ export default class Mongo extends Database {
     else
       await this.collection.insertOne({
         // Mango specific data, used to get the player
-        uuid: player.uuid,
-        ...player.getDatabasePlayer(),
+        uuid: uuid,
+        ...player,
       });
   }
 
