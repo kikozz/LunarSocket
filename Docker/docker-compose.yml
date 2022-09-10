@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+    lunarsocket:
+        build: 
+          context: .
+        ports:
+            - 18999:80
+            # Dont change this 80 , if u need change 80 , Go to Dockerfile to change!
+            # You can change this 18999 to any number u like !
+        volumes:
+            - $PWD/config.json/:/app/config.json
+        stdin_open: true
+        tty: true
+        restart: always 
